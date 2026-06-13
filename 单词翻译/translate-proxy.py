@@ -51,7 +51,7 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
         pass
 
 if __name__ == '__main__':
-    server = http.server.HTTPServer(('127.0.0.1', PORT), ProxyHandler)
+    server = http.server.HTTPServer(('0.0.0.0', PORT), ProxyHandler)
     print('翻译代理已启动: http://127.0.0.1:' + str(PORT))
     print('  /freedict/<word>  - Free Dictionary API')
     print('  /mymemory/<word>  - MyMemory翻译API')
