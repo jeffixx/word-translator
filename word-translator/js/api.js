@@ -1,5 +1,5 @@
 var TranslationAPI = (function() {
-  var PROXY_BASE = 'word-translator-production.up.railway.app';
+  var PROXY_BASE = 'https://word-translator-production.up.railway.app';
 
   var FREEDICT_DIRECT = 'https://api.dictionaryapi.dev/api/v2/entries/en';
   var MYMEMORY_DIRECT = 'https://api.mymemory.translated.net/get';
