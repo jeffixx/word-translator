@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>瞬译单词助手</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app">
+        <header class="app-header">
+            <h1>📚 瞬译单词助手</h1>
+            <span class="dict-count" id="dict-count"></span>
+        </header>
+
+        <section class="search-area">
+            <div class="input-wrapper">
+                <input type="text" id="word-input" placeholder="输入单词或自动识别剪贴板..." autocomplete="off" autocapitalize="off">
+                <button id="clear-btn" class="clear-btn" aria-label="清除">✕</button>
+            </div>
+            <div class="search-actions">
+                <label class="clipboard-toggle">
+                    <input type="checkbox" id="clipboard-check" checked>
+                    <span class="toggle-track"></span>
+                    <span class="toggle-label">自动识别</span>
+                </label>
+                <button id="search-btn" class="btn-primary">翻译</button>
+                <button id="clear-cache-btn" class="btn-text" title="清除所有翻译缓存">清空缓存</button>
+            </div>
+        </section>
+
+        <section id="card-section" class="card-section hidden">
+            <div class="word-card" id="word-card">
+                <div class="card-header">
+                    <div class="word-main">
+                        <h2 id="card-word"></h2>
+                        <span id="card-level" class="level-tag"></span>
+                    </div>
+                    <button id="fav-btn" class="fav-btn" title="收藏">☆</button>
+                </div>
+
+                <div class="card-phonetic" id="card-phonetic"></div>
+
+                <div class="card-translation">
+                    <span id="card-pos" class="pos-tag"></span>
+                    <span id="card-meaning"></span>
+                </div>
+
+                <div id="card-roots" class="card-roots hidden">
+                    <div id="roots-content"></div>
+                </div>
+
+                <div id="card-example" class="card-example hidden">
+                    <div class="section-title">📖 例句</div>
+                    <div id="example-content"></div>
+                </div>
+
+                <div class="card-footer">
+                    <span id="source-tag" class="source-tag"></span>
+                </div>
+            </div>
+        </section>
+
+        <section class="history-section">
+            <button class="collapse-btn" id="history-toggle">
+                <span>📋 最近查询</span>
+                <span class="collapse-arrow">▾</span>
+            </button>
+            <div id="history-panel" class="collapse-panel">
+                <div id="history-list" class="tag-list"></div>
+                <button id="clear-history" class="btn-text">清空记录</button>
+            </div>
+        </section>
+
+        <section class="fav-section">
+            <button class="collapse-btn" id="fav-toggle">
+                <span>⭐ 收藏夹</span>
+                <span class="collapse-arrow">▾</span>
+            </button>
+            <div id="fav-panel" class="collapse-panel">
+                <div id="fav-list" class="tag-list"></div>
+                <div class="fav-actions">
+                    <button id="export-txt" class="btn-text">导出 TXT</button>
+                    <button id="export-json" class="btn-text">导出 JSON</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="js/dict.js?v=4"></script>
+    <script src="js/api.js?v=4"></script>
+    <script src="js/cache.js?v=4"></script>
+    <script src="js/llm.js?v=4"></script>
+    <script src="js/app.js?v=4"></script>
+</body>
+</html>
