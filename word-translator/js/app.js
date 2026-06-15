@@ -103,11 +103,13 @@
 
     var result = CacheManager.queryWithOnline(word, lookupLocalDict, function(asyncResult) {
       if (asyncResult.data) {
-        currentData = asyncResult.data;
-        showCard(asyncResult.data, asyncResult.source);
-        CacheManager.addHistory(word);
-        CacheManager.saveToCache(word, asyncResult.data);
-        renderHistory();
+        LLMService.enhanceWord(asyncResult.data, function(enhancedData) {
+          currentData = enhancedData;
+          showCard(enhancedData, asyncResult.source);
+          CacheManager.addHistory(word);
+          CacheManager.saveToCache(word, enhancedData);
+          renderHistory();
+        });
       } else {
         showNotFound(word, asyncResult.error);
       }
@@ -119,11 +121,13 @@
     }
 
     if (result.data) {
-      currentData = result.data;
-      showCard(result.data, result.source);
-      CacheManager.addHistory(word);
-      CacheManager.saveToCache(word, result.data);
-      renderHistory();
+      LLMService.enhanceWord(result.data, function(enhancedData) {
+        currentData = enhancedData;
+        showCard(enhancedData, result.source);
+        CacheManager.addHistory(word);
+        CacheManager.saveToCache(word, enhancedData);
+        renderHistory();
+      });
     } else {
       showLoading(word);
     }
