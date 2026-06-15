@@ -2,10 +2,10 @@
   var clipboardEnabled = true;
   var lastClipboard = '';
   var clipboardInterval = null;
-
   var elements = {
     wordInput: document.getElementById('word-input'),
     searchBtn: document.getElementById('search-btn'),
+    aiTranslateBtn: document.getElementById('ai-translate-btn'),
     clearBtn: document.getElementById('clear-btn'),
     clearCacheBtn: document.getElementById('clear-cache-btn'),
     clipboardCheck: document.getElementById('clipboard-check'),
@@ -33,7 +33,6 @@
     exportJson: document.getElementById('export-json'),
     toast: document.getElementById('toast')
   };
-
   var currentWord = '';
   var currentData = null;
 
@@ -47,6 +46,7 @@
 
   function bindEvents() {
     elements.searchBtn.addEventListener('click', search);
+    elements.aiTranslateBtn.addEventListener('click', aiTranslate);
     elements.clearBtn.addEventListener('click', clearInput);
     elements.clearCacheBtn.addEventListener('click', clearCacheHandler);
     elements.wordInput.addEventListener('keypress', function(e) {
@@ -95,20 +95,19 @@
     }).catch(function() {});
   }
 
+  // 普通翻译（本地 + 在线API）
   function search() {
     var word = elements.wordInput.value.trim();
     if (!word) return;
-
     currentWord = word;
+
     var result = CacheManager.queryWithOnline(word, lookupLocalDict, function(asyncResult) {
       if (asyncResult.data) {
-        LLMService.enhanceWord(asyncResult.data, function(enhancedData) {
-          currentData = enhancedData;
-          showCard(enhancedData, asyncResult.source);
-          CacheManager.addHistory(word);
-          CacheManager.saveToCache(word, enhancedData);
-          renderHistory();
-        });
+        currentData = asyncResult.data;
+        showCard(asyncResult.data, asyncResult.source);
+        CacheManager.addHistory(word);
+        CacheManager.saveToCache(word, asyncResult.data);
+        renderHistory();
       } else {
         showNotFound(word, asyncResult.error);
       }
@@ -120,16 +119,38 @@
     }
 
     if (result.data) {
-      LLMService.enhanceWord(result.data, function(enhancedData) {
-        currentData = enhancedData;
-        showCard(enhancedData, result.source);
-        CacheManager.addHistory(word);
-        CacheManager.saveToCache(word, enhancedData);
-        renderHistory();
-      });
+      currentData = result.data;
+      showCard(result.data, result.source);
+      CacheManager.addHistory(word);
+      CacheManager.saveToCache(word, result.data);
+      renderHistory();
     } else {
       showLoading(word);
     }
+  }
+
+  // AI 翻译（手动触发，调用大模型）
+  function aiTranslate() {
+    var word = elements.wordInput.value.trim();
+    if (!word) {
+      showToast('请先输入单词');
+      return;
+    }
+    currentWord = word;
+    showLoadingAI(word);
+
+    LLMService.callDeepSeek(word, function(result) {
+      if (result.success && result.data) {
+        currentData = result.data;
+        showCard(result.data, 'L4');
+        CacheManager.addHistory(word);
+        CacheManager.saveToCache(word, result.data);
+        renderHistory();
+        showToast('AI 翻译完成');
+      } else {
+        showNotFound(word, result.error || 'AI翻译失败');
+      }
+    });
   }
 
   function showLoading(word) {
@@ -143,6 +164,19 @@
     elements.cardExample.classList.add('hidden');
     elements.sourceTag.textContent = '查询中';
     elements.sourceTag.className = 'source-tag';
+  }
+
+  function showLoadingAI(word) {
+    elements.cardSection.classList.remove('hidden');
+    elements.cardWord.textContent = word;
+    elements.cardPhonetic.textContent = '';
+    elements.cardPos.textContent = '';
+    elements.cardMeaning.textContent = '🤖 AI 正在翻译...';
+    elements.cardLevel.style.display = 'none';
+    elements.cardRoots.classList.add('hidden');
+    elements.cardExample.classList.add('hidden');
+    elements.sourceTag.textContent = 'AI翻译中';
+    elements.sourceTag.className = 'source-tag llm';
   }
 
   function showNotFound(word, error) {
@@ -175,7 +209,6 @@
     elements.cardPhonetic.textContent = data.phonetic || '';
     elements.cardPos.textContent = data.pos || '';
     elements.cardMeaning.textContent = data.translation;
-
     if (data.level) {
       elements.cardLevel.textContent = data.level;
       elements.cardLevel.style.display = '';
@@ -193,6 +226,8 @@
       sectionTitle = '🔊 谐音记忆';
     } else if (memoryType === 'basic') {
       sectionTitle = '💡 记忆提示';
+    } else {
+      sectionTitle = '🧠 词根拆解';
     }
 
     if (data.roots && data.roots.length > 0) {
@@ -286,23 +321,18 @@
   function clearCacheHandler() {
     var stats = CacheManager.getCacheStats();
     var total = stats.l1 + stats.l2;
-
     if (total === 0) {
       showToast('缓存为空，无需清空');
       return;
     }
-
     var savedCurrentWord = currentWord;
     var savedCurrentData = currentData;
-
     CacheManager.clearCache();
-
     currentWord = savedCurrentWord;
     currentData = savedCurrentData;
     if (savedCurrentData) {
       showCard(savedCurrentData, 'L1');
     }
-
     showToast('已清空 ' + total + ' 条临时翻译缓存');
   }
 
