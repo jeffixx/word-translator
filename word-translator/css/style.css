@@ -179,7 +179,32 @@ body {
     background: var(--primary-dark);
     transform: scale(0.97);
 }
+.btn-ai {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
 
+.btn-ai:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-ai:active {
+    transform: translateY(0);
+}
+
+.btn-ai:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
 .card-section {
     margin-bottom: 20px;
 }
