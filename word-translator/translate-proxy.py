@@ -9,13 +9,7 @@ DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 
 class ProxyHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == '/' or self.path == '/index.html':
-            self._serve_static('index.html', 'text/html; charset=utf-8')
-        elif self.path.startswith('/css/'):
-            self._serve_static(self.path[1:], 'text/css; charset=utf-8')
-        elif self.path.startswith('/js/'):
-            self._serve_static(self.path[1:], 'application/javascript; charset=utf-8')
-        elif self.path.startswith('/freedict/'):
+        if self.path.startswith('/freedict/'):
             word = self.path[len('/freedict/'):]
             url = 'https://api.dictionaryapi.dev/api/v2/entries/en/' + urllib.request.quote(word)
             self._proxy(url)
@@ -32,17 +26,47 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
         else:
             self.send_error(404)
 
-    def _serve_static(self, filename, content_type):
+    def _handle_llm(self):
         try:
-            with open(filename, 'rb') as f:
-                data = f.read()
-            self.send_response(200)
-            self.send_header('Content-Type', content_type)
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length == 0:
+                self.send_error(400, 'Empty body')
+                return
+
+            body = self.rfile.read(content_length)
+            request_data = json.loads(body.decode('utf-8'))
+
+            if not DEEPSEEK_API_KEY:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'DEEPSEEK_API_KEY not configured'}).encode())
+                return
+
+            req = urllib.request.Request(
+                'https://api.deepseek.com/chat/completions',
+                data=json.dumps(request_data).encode('utf-8'),
+                headers={
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + DEEPSEEK_API_KEY
+                }
+            )
+
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                data = resp.read()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(data)
+
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            self.wfile.write(data)
-        except FileNotFoundError:
-            self.send_error(404)
+            self.wfile.write(json.dumps({'error': str(e)}).encode())
 
     def _proxy(self, url):
         try:
@@ -65,65 +89,6 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(str(e).encode())
 
-    def _handle_llm(self):
-        content_length = int(self.headers.get('Content-Length', 0))
-        body = self.rfile.read(content_length)
-        try:
-            request_data = json.loads(body)
-        except json.JSONDecodeError:
-            self._send_json_error(400, 'Invalid JSON')
-            return
-
-        if not DEEPSEEK_API_KEY:
-            self._send_json_error(500, 'DeepSeek API Key not configured')
-            return
-
-        messages = request_data.get('messages', [])
-        if not messages:
-            self._send_json_error(400, 'Missing messages')
-            return
-
-        deepseek_url = 'https://api.deepseek.com/chat/completions'
-        payload = json.dumps({
-            'model': 'deepseek-chat',
-            'messages': messages,
-            'temperature': 0.7,
-            'max_tokens': 500
-        }).encode('utf-8')
-
-        try:
-            req = urllib.request.Request(
-                deepseek_url,
-                data=payload,
-                headers={
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + DEEPSEEK_API_KEY,
-                    'User-Agent': 'Mozilla/5.0'
-                }
-            )
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                data = resp.read()
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(data)
-        except urllib.error.HTTPError as e:
-            error_body = e.read() if e.fp else b''
-            self.send_response(e.code)
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(error_body)
-        except Exception as e:
-            self._send_json_error(500, str(e))
-
-    def _send_json_error(self, code, message):
-        self.send_response(code)
-        self.send_header('Content-Type', 'application/json; charset=utf-8')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        self.wfile.write(json.dumps({'error': message}).encode('utf-8'))
-
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -136,10 +101,10 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     server = http.server.HTTPServer(('0.0.0.0', PORT), ProxyHandler)
-    print('翻译代理已启动: http://0.0.0.0:' + str(PORT))
+    print('翻译代理已启动: http://127.0.0.1:' + str(PORT))
     print('  /freedict/<word>  - Free Dictionary API')
     print('  /mymemory/<word>  - MyMemory翻译API')
-    print('  /llm              - DeepSeek LLM API')
+    print('  /llm              - DeepSeek AI翻译')
     try:
         server.serve_forever()
     except KeyboardInterrupt:
