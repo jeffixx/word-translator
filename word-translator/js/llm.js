@@ -1,5 +1,5 @@
 var LLMService = (function() {
-  var API_ENDPOINT = '';
+  var API_ENDPOINT = '/llm';
   var API_KEY = '';
 
   // 词根词缀表
@@ -117,7 +117,6 @@ var LLMService = (function() {
   function analyzeRoots(word) {
     var roots = [];
     var w = word.toLowerCase();
-
     var prefixes = ['un-', 'pre-', 'dis-', 're-', 'in-', 'im-', 'ex-', 'sub-', 'super-', 'inter-', 'trans-', 'mis-', 'over-', 'under-', 'anti-', 'auto-', 'co-', 'de-', 'multi-', 'non-', 'out-', 'post-', 'semi-', 'tele-', 'micro-', 'macro-', 'bi-'];
     for (var i = 0; i < prefixes.length; i++) {
       var prefix = prefixes[i];
@@ -128,7 +127,6 @@ var LLMService = (function() {
         break;
       }
     }
-
     var suffixes = ['-tion', '-sion', '-ment', '-ness', '-able', '-ible', '-ful', '-less', '-ous', '-ive', '-al', '-ize', '-ify', '-en', '-er', '-or', '-ist', '-ly'];
     for (var i = 0; i < suffixes.length; i++) {
       var suffix = suffixes[i];
@@ -139,7 +137,6 @@ var LLMService = (function() {
         break;
       }
     }
-
     var rootKeys = ['struct', 'spect', 'scrib', 'cept', 'clud', 'tract', 'ject', 'lect', 'cogn', 'cred', 'dict', 'duc', 'graph', 'oper', 'pend', 'port', 'sect', 'sent', 'sign', 'form', 'gen', 'mit', 'mov', 'nat', 'vac', 'val', 'vis', 'vit', 'act', 'aud', 'cap', 'ced', 'cur', 'fac', 'fer', 'fin', 'loc', 'log', 'pos'];
     for (var i = 0; i < rootKeys.length; i++) {
       var root = rootKeys[i];
@@ -148,7 +145,6 @@ var LLMService = (function() {
         break;
       }
     }
-
     return roots;
   }
 
@@ -159,182 +155,9 @@ var LLMService = (function() {
     var prefix = '';
     var suffix = '';
     var middle = w;
-
     var prefixPatterns = ['con', 'com', 'pro', 'per', 'sur', 'sup', 'des', 'dec', 'rec', 'red', 'sub', 'tra', 'tri', 'bio', 'geo', 'phy', 'psy', 'neo', 'arc'];
     for (var i = 0; i < prefixPatterns.length; i++) {
       if (middle.startsWith(prefixPatterns[i]) && middle.length > prefixPatterns[i].length + 3) {
         prefix = prefixPatterns[i];
         middle = middle.slice(prefix.length);
         break;
-      }
-    }
-
-    var suffixPatterns = ['tion', 'sion', 'ment', 'ness', 'ance', 'ence', 'able', 'ible', 'ful', 'less', 'ous', 'ive', 'ial', 'ical', 'ize', 'ise', 'ify', 'ate', 'ent', 'ant', 'ary', 'ery', 'ory', 'ing'];
-    for (var i = 0; i < suffixPatterns.length; i++) {
-      if (middle.endsWith(suffixPatterns[i]) && middle.length > suffixPatterns[i].length + 2) {
-        suffix = suffixPatterns[i];
-        middle = middle.slice(0, -suffix.length);
-        break;
-      }
-    }
-
-    if (prefix) parts.push({ part: prefix, meaning: '前缀' });
-    if (middle) parts.push({ part: middle, meaning: '词根' });
-    if (suffix) parts.push({ part: suffix, meaning: '后缀' });
-
-    if (parts.length > 1) {
-      return {
-        type: 'split',
-        roots: parts,
-        memory: parts.map(function(p) { return p.part; }).join(' + ') + ' → ' + translation
-      };
-    }
-
-    return null;
-  }
-
-  // 谐音记忆
-  function homophoneMemory(word, translation) {
-    var w = word.toLowerCase().trim();
-    if (HOMOPHONE_TIPS[w]) {
-      return {
-        type: 'homophone',
-        memory: HOMOPHONE_TIPS[w],
-        roots: []
-      };
-    }
-    return null;
-  }
-
-  // 混合记忆策略
-  function generateMemory(data) {
-    var word = data.word.toLowerCase().trim();
-    var translation = data.translation || '';
-
-    // 优先级1：已有词根词缀（来自本地词库）
-    if (data.roots && data.roots.length > 0) {
-      if (!data.memory) {
-        var memoryParts = data.roots.map(function(r) {
-          return r.part + '(' + r.meaning + ')';
-        }).join('+');
-        data.memory = memoryParts + '→' + translation;
-      }
-      data.memoryType = 'roots';
-      return data;
-    }
-
-    // 优先级2：词根词缀分析
-    var roots = analyzeRoots(word);
-    if (roots.length > 0) {
-      data.roots = roots;
-      if (!data.memory) {
-        var memoryParts = roots.map(function(r) {
-          return r.part + '(' + r.meaning + ')';
-        }).join('+');
-        data.memory = memoryParts + '→' + translation;
-      }
-      data.memoryType = 'roots';
-      return data;
-    }
-
-    // 优先级3：拆分记忆（长词>4字母）
-    if (word.length > 4) {
-      var split = splitMemory(word, translation);
-      if (split) {
-        data.roots = split.roots;
-        data.memory = split.memory;
-        data.memoryType = 'split';
-        return data;
-      }
-    }
-
-    // 优先级4：谐音记忆（短词≤6字母）
-    if (word.length <= 6) {
-      var homo = homophoneMemory(word, translation);
-      if (homo) {
-        data.memory = homo.memory;
-        data.roots = [];
-        data.memoryType = 'homophone';
-        return data;
-      }
-    }
-
-    // 优先级5：基础词汇提示
-    data.roots = [];
-    data.memory = '基础词汇，建议整体记忆';
-    data.memoryType = 'basic';
-    return data;
-  }
-
-  function generateExample(translation, pos) {
-    var templates = {
-      'v.': [
-        'It is important to {meaning} in daily life.',
-        'Learning to {meaning} requires patience.',
-        'You should {meaning} when facing challenges.'
-      ],
-      'n.': [
-        'The {meaning} is essential for development.',
-        'A good {meaning} contributes to success.',
-        'Understanding {meaning} helps us grow.'
-      ],
-      'adj.': [
-        'This is a {meaning} approach to the problem.',
-        'Being {meaning} is a valuable quality.',
-        'The {meaning} solution impressed everyone.'
-      ],
-      'adv.': [
-        'She acted {meaning} in the situation.',
-        'The task was completed {meaning}.',
-        'He {meaning} achieved his goals.'
-      ]
-    };
-
-    var posTemplates = templates[pos] || templates['n.'];
-    var template = posTemplates[Math.floor(Math.random() * posTemplates.length)];
-    return template.replace('{meaning}', translation.split('，')[0].split('；')[0]);
-  }
-
-  function enhanceWord(data, callback) {
-    setTimeout(function() {
-      console.log('[LLM] enhanceWord 输入:', data.word, 'roots:', data.roots ? data.roots.length : 0, 'example:', data.example ? 'yes' : 'no');
-
-      // 使用混合记忆策略
-      data = generateMemory(data);
-
-      // 生成例句
-      if (!data.example) {
-        data.example = {
-          en: generateExample(data.translation, data.pos),
-          cn: data.translation + '的例句'
-        };
-      }
-
-      console.log('[LLM] enhanceWord 输出:', JSON.stringify({
-        memoryType: data.memoryType, roots: data.roots.length,
-        memory: data.memory, example: data.example ? 'yes' : 'no'
-      }));
-
-      callback(data);
-    }, 100);
-  }
-
-  function translateWithLLM(word, callback) {
-    callback({
-      word: word,
-      translation: '正在开发中...',
-      phonetic: '',
-      pos: '',
-      level: '',
-      source: 'llm'
-    });
-  }
-
-  return {
-    enhanceWord: enhanceWord,
-    translateWithLLM: translateWithLLM,
-    isConfigured: function() {
-      return API_ENDPOINT !== '' && API_KEY !== '';
-    }
-  };
-})();
