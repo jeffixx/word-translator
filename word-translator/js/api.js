@@ -1,18 +1,27 @@
 var TranslationAPI = (function() {
   var PROXY_BASE = 'https://word-translator-production.up.railway.app';
-
   var FREEDICT_DIRECT = 'https://api.dictionaryapi.dev/api/v2/entries/en';
   var MYMEMORY_DIRECT = 'https://api.mymemory.translated.net/get';
-
   var useProxy = true;
+
+  // 过滤 MyMemory 广告 HTML
+  function cleanTranslation(text) {
+    if (!text) return '';
+    // 移除 HTML 标签
+    var cleaned = text.replace(/<[^>]+>/g, '');
+    // 移除广告关键词
+    cleaned = cleaned.replace(/狗窝吧提供繁简体汉化服务/g, '');
+    cleaned = cleaned.replace(/提供繁简体汉化服务/g, '');
+    // 清理多余空格
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    return cleaned;
+  }
 
   function fetchFreeDict(word, callback) {
     var directUrl = FREEDICT_DIRECT + '/' + encodeURIComponent(word);
     var proxyUrl = PROXY_BASE + '/freedict/' + encodeURIComponent(word);
     var url = useProxy ? proxyUrl : directUrl;
-
     console.log('[API] Free Dictionary 请求:', url);
-
     fetch(url)
       .then(function(response) {
         console.log('[API] Free Dictionary 状态:', response.status);
@@ -33,7 +42,6 @@ var TranslationAPI = (function() {
             memory: '',
             example: null
           };
-
           if (entry.phonetic) {
             result.phonetic = entry.phonetic;
           } else if (entry.phonetics && entry.phonetics.length > 0) {
@@ -42,14 +50,11 @@ var TranslationAPI = (function() {
               result.phonetic = phoneticWithText.text;
             }
           }
-
           if (entry.meanings && entry.meanings.length > 0) {
             var meaning = entry.meanings[0];
             result.pos = meaning.partOfSpeech ? meaning.partOfSpeech + '.' : '';
-
             if (meaning.definitions && meaning.definitions.length > 0) {
               result.enDefinition = meaning.definitions[0].definition;
-
               if (meaning.definitions[0].example) {
                 result.example = {
                   en: meaning.definitions[0].example,
@@ -58,7 +63,6 @@ var TranslationAPI = (function() {
               }
             }
           }
-
           console.log('[API] Free Dictionary 结果:', result.phonetic, result.pos, result.example ? '有例句' : '无例句');
           callback({ success: true, data: result });
         } else {
@@ -82,9 +86,7 @@ var TranslationAPI = (function() {
     var directUrl = MYMEMORY_DIRECT + '?q=' + encodeURIComponent(word) + '&langpair=en|zh-CN';
     var proxyUrl = PROXY_BASE + '/mymemory/' + encodeURIComponent(word);
     var url = useProxy ? proxyUrl : directUrl;
-
     console.log('[API] MyMemory 请求:', url);
-
     fetch(url)
       .then(function(response) {
         console.log('[API] MyMemory 状态:', response.status);
@@ -95,11 +97,14 @@ var TranslationAPI = (function() {
       })
       .then(function(data) {
         if (data.responseStatus === 200 && data.responseData) {
-          console.log('[API] MyMemory 翻译:', data.responseData.translatedText);
+          var rawText = data.responseData.translatedText || '未找到翻译';
+          var cleanedText = cleanTranslation(rawText);
+          console.log('[API] MyMemory 原始翻译:', rawText);
+          console.log('[API] MyMemory 清理后:', cleanedText);
           callback({
             success: true,
             data: {
-              translation: data.responseData.translatedText || '未找到翻译'
+              translation: cleanedText
             }
           });
         } else {
@@ -120,7 +125,6 @@ var TranslationAPI = (function() {
 
   function translate(word, callback) {
     console.log('[API] 开始翻译:', word);
-
     var finalResult = {
       word: word,
       translation: '',
@@ -131,7 +135,6 @@ var TranslationAPI = (function() {
       memory: '',
       example: null
     };
-
     var completedCount = 0;
     var totalRequests = 2;
 
