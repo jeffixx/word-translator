@@ -280,3 +280,24 @@ function lookupLocalDict(word) {
 function getDictCount() {
   return Object.keys(LOCAL_DICT).length;
 }
+function getDictCount() {
+  return Object.keys(LOCAL_DICT).length;
+}
+
+function lookupLocalDict(word) {
+  var w = word.toLowerCase().trim();
+  if (LOCAL_DICT[w]) {
+    var entry = LOCAL_DICT[w];
+    return {
+      word: entry.word || w,
+      phonetic: entry.phonetic || '',
+      pos: entry.pos || '',
+      translation: entry.translation || '',
+      level: entry.level || '',
+      roots: entry.roots || [],
+      memory: entry.memory || '',
+      example: entry.example || null
+    };
+  }
+  return null;
+}
