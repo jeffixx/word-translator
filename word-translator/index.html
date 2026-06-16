@@ -14,13 +14,12 @@
             <h1>📚 瞬译单词助手</h1>
             <span class="dict-count" id="dict-count"></span>
         </header>
-
         <section class="search-area">
             <div class="input-wrapper">
                 <input type="text" id="word-input" placeholder="输入单词或自动识别剪贴板..." autocomplete="off" autocapitalize="off">
                 <button id="clear-btn" class="clear-btn" aria-label="清除">✕</button>
             </div>
-             <div class="search-actions">
+            <div class="search-actions">
                 <label class="clipboard-toggle">
                     <input type="checkbox" id="clipboard-check" checked>
                     <span class="toggle-track"></span>
@@ -31,7 +30,6 @@
                 <button id="clear-cache-btn" class="btn-text" title="清除所有翻译缓存">清空缓存</button>
             </div>
         </section>
-
         <section id="card-section" class="card-section hidden">
             <div class="word-card" id="word-card">
                 <div class="card-header">
@@ -41,29 +39,23 @@
                     </div>
                     <button id="fav-btn" class="fav-btn" title="收藏">☆</button>
                 </div>
-
                 <div class="card-phonetic" id="card-phonetic"></div>
-
                 <div class="card-translation">
                     <span id="card-pos" class="pos-tag"></span>
                     <span id="card-meaning"></span>
                 </div>
-
                 <div id="card-roots" class="card-roots hidden">
                     <div id="roots-content"></div>
                 </div>
-
                 <div id="card-example" class="card-example hidden">
                     <div class="section-title">📖 例句</div>
                     <div id="example-content"></div>
                 </div>
-
                 <div class="card-footer">
                     <span id="source-tag" class="source-tag"></span>
                 </div>
             </div>
         </section>
-
         <section class="history-section">
             <button class="collapse-btn" id="history-toggle">
                 <span>📋 最近查询</span>
@@ -74,7 +66,6 @@
                 <button id="clear-history" class="btn-text">清空记录</button>
             </div>
         </section>
-
         <section class="fav-section">
             <button class="collapse-btn" id="fav-toggle">
                 <span>⭐ 收藏夹</span>
@@ -89,13 +80,11 @@
             </div>
         </section>
     </div>
-
     <div id="toast" class="toast hidden"></div>
-
-  <script src="js/dict.js?v=6"></script>
-  <script src="js/api.js?v=6"></script>
-  <script src="js/cache.js?v=6"></script>
-  <script src="js/llm.js?v=6"></script>
-  <script src="js/app.js?v=6"></script>
+    <script src="js/dict.js?v=7"></script>
+    <script src="js/api.js?v=7"></script>
+    <script src="js/cache.js?v=7"></script>
+    <script src="js/llm.js?v=7"></script>
+    <script src="js/app.js?v=7"></script>
 </body>
 </html>
